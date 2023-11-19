@@ -533,7 +533,7 @@ apt-get install apache2-utils -y
 
 Selannjutnya kita bisa melakukan testing dengan cara menuliskan syntax berikut:
 ```
-ab -n 1000 -c 1 -r http://granz.channel.b13.com/
+ab -n 1000 -c 100 -r http://granz.channel.b13.com/
 ```
 - n adalah jumlah request yang dikirimkan
 - c adalah jumlah request yang dikirimkan secara bersamaan
@@ -541,6 +541,218 @@ ab -n 1000 -c 1 -r http://granz.channel.b13.com/
 
 Kemudian hasilnya adalah sebagai berikut:
 
-![1000](/assets/1000.png)
+![1000 request](/assets/1000.png)
 
+Tampilan pada masing masing node adalah sebagai berikut:
+
+![1000 request](/assets/1000request.gif)
+
+## Laporan Grinmore 1 (8)
+> buatlah analisis hasil testing dengan 200 request dan 10 request/second masing-masing algoritma Load Balancer dengan ketentuan sebagai berikut:
+
+### Round Robin 
+Untuk melakukan testing ini kita tidak perlu melakukan konfigurasi apapun karena konfigurasi round robin sudah dilakukan pada soal no 6 dan 7. 
+
+#### Testing 200 request dan 10 request/second
+Untuk melakukan testing tersebut kita bisa langsung menuliskan syntax berikut:
+```
+ab -n 200 -c 10 -r http://granz.channel.b13.com/
+```
+
+Hasilnya adalah sebagai berikut:
+
+![Round Robin](/assets/Round%20Robin.png)
+
+Dari gambar diatas bisa kita lihat bahwa hasil dari testing round robin adalah sebagai berikut:
+- Time taken for tests : 0.333 seconds
+- Complete requests : 200
+- Failed requests : 67
+- Time per request : 16,33 [ms] (mean)
+
+### Least Connection
+Untuk melakukan testing ini kita perlu melakukan konfigurasi pada file `granz.channel.b13.com` dengan cara menulis syntax berikut:
+```
+upstream web {
+   # no load balancing method is specified for Round Robin
+   least_conn;
+   server
+   ...
+}
+```
+
+#### Testing 200 request dan 10 request/second
+Untuk melakukan testing tersebut kita bisa langsung menuliskan syntax berikut:
+```
+ab -n 200 -c 10 -r http://granz.channel.b13.com/
+```
+
+Hasilnya adalah sebagai berikut:
+
+![Least Connection](/assets/least_conn.png)
+
+
+Dari gambar diatas bisa kita lihat bahwa hasil dari testing least connection adalah sebagai berikut:
+
+- Time taken for tests : 0.288 seconds
+- Complete requests : 200
+- Failed requests : 60
+- Time per request : 14,39 [ms] (mean)
+
+### IP Hash
+Untuk melakukan testing ini kita perlu melakukan konfigurasi pada file `granz.channel.b13.com` dengan cara menulis syntax berikut:
+```
+upstream web {
+   # no load balancing method is specified for Round Robin
+   ip_hash;
+   server
+   ...
+}
+```
+
+#### Testing 200 request dan 10 request/second
+Untuk melakukan testing tersebut kita bisa langsung menuliskan syntax berikut:
+```
+ab -n 200 -c 10 -r http://granz.channel.b13.com/
+```
+
+Hasilnya adalah sebagai berikut:
+
+![IP Hash](/assets/ip_hash.png)
+
+Dari gambar diatas bisa kita lihat bahwa hasil dari testing IP Hash adalah sebagai berikut:
+
+- Time taken for tests : 0.257 seconds
+- Complete requests : 200
+- Failed requests : 0
+- Time per request : 12,835 [ms] (mean)
+
+### Generic Hash
+
+Untuk melakukan testing ini kita perlu melakukan konfigurasi pada file `granz.channel.b13.com` dengan cara menulis syntax berikut:
+```
+upstream web {
+   # no load balancing method is specified for Round Robin
+   hash $remote_addr consistent;
+   server
+   ...
+}
+```
+
+#### Testing 200 request dan 10 request/second
+Untuk melakukan testing tersebut kita bisa langsung menuliskan syntax berikut:
+```
+ab -n 200 -c 10 -r http://granz.channel.b13.com/
+```
+
+Hasilnya adalah sebagai berikut:
+
+![Generic Hash](/assets/generic_hash.png)
+
+Dari gambar diatas bisa kita lihat bahwa hasil dari testing Generic Hash adalah sebagai berikut:
+
+- Time taken for tests : 0.257 seconds
+- Complete requests : 200
+- Failed requests : 0
+- Time per request : 12,835 [ms] (mean)
+
+### Grafik
+![Grafik](/assets/hasil_testing.png)
+
+
+### Kesimpulan 
+Dari hasil testing diatas bisa kita bisa simpulkan bahwa untuk load balancer yang paling baik adalah IP Hash dan Generic Hash karena memiliki nilai time per request yang paling kecil. 
+
+Hal tersebut dikarenakan IP Hash dan Generic Hash menggunakan algoritma hash untuk melakukan load balancing. Algoritma hash akan melakukan hashing terhadap IP address dari client yang melakukan request. Sehingga setiap client akan mendapatkan server yang sama selama server tersebut masih aktif. 
+
+Sedangkan untuk algoritma round robin dan least connection tidak menggunakan algoritma hash sehingga tidak bisa menjamin bahwa setiap client akan mendapatkan server yang sama selama server tersebut masih aktif.
+
+
+
+### Laporan Grinmore 2 (9)
+> Dengan menggunakan algoritma Round Robin, lakukan testing dengan menggunakan 3 worker, 2 worker, dan 1 worker sebanyak 100 request dengan 10 request/second, kemudian tambahkan grafiknya pada grimoire. (9)
+
+Untuk melakukan testing ini kita perlu mengembalikan konfigurasi pada file `granz.channel.b13.com` seperti semula yaitu dengan menggunakan algoritma round robin.
+
+Setelah itu kita bisa melakukan testing.
+
+#### Testing 100 request dan 10 request/second dengan 3 worker
+Untuk melakukan testing tersebut kita bisa langsung menuliskan syntax berikut:
+```
+ab -n 100 -c 10 -r http://granz.channel.b13.com/
+```
+
+Hasilnya adalah sebagai berikut:
+
+![3 worker](/assets/3Worker.png)
+
+Dari gambar diatas bisa kita lihat bahwa hasil dari testing 3 worker adalah sebagai berikut:
+
+- Time taken for tests : 0.137 seconds
+- Complete requests : 100
+- Failed requests : 33
+- Time per request : 15,2 [ms] (mean)
+
+#### Testing 100 request dan 10 request/second dengan 2 worker
+
+Untuk melakukan testing tersebut kita bisa langsung mematikan salah satu worker, dalam case ini kita mematikan worker dengan IP `10.15.3.1`.
+
+Setelah itu kita bisa langsung menuliskan syntax berikut:
+```
+ab -n 100 -c 10 -r http://granz.channel.b13.com/
+```
+
+Hasilnya adalah sebagai berikut:
+
+![2 worker](/assets/2Worker.png)
+
+Dari gambar diatas bisa kita lihat bahwa hasil dari testing 2 worker adalah sebagai berikut:
+
+- Time taken for tests : 0.125 seconds
+- Complete requests : 100
+- Failed requests : 50
+- Time per request : 12,5 [ms] (mean)
+
+#### Testing 100 request dan 10 request/second dengan 1 worker
+
+Untuk melakukan testing tersebut kita bisa langsung mematikan salah satu worker, dalam case ini kita mematikan worker dengan IP `10.15.3.2`.
+
+Setelah itu kita bisa langsung menuliskan syntax berikut:
+```
+ab -n 100 -c 10 -r http://granz.channel.b13.com/
+```
+
+Hasilnya adalah sebagai berikut:
+
+![1 worker](/assets/1Worker.png)
+
+Dari gambar diatas bisa kita lihat bahwa hasil dari testing 1 worker adalah sebagai berikut:
+
+- Time taken for tests : 0.115 seconds
+- Complete requests : 100
+- Failed requests : 0
+- Time per request : 11,5 [ms] (mean)
+
+### Grafik
+
+![Grafik](/assets/hasil_testing_worker.png)
+
+### Kesimpulan
+
+Berdasarkan data load balancer round robin yang Anda berikan, berikut adalah beberapa kesimpulan yang dapat ditarik:
+
+- Secara keseluruhan, load balancer berkinerja baik. Ketiga konfigurasi pekerja dapat menyelesaikan 100 permintaan, dan waktu rata-rata per permintaan relatif rendah.
+- Menggunakan satu pekerja adalah konfigurasi yang paling efisien. Waktu rata-rata per permintaan adalah 11,5 ms, dan tidak ada permintaan yang gagal. Namun, konfigurasi ini juga yang paling tidak dapat diskalakan, karena tidak akan dapat menangani peningkatan lalu lintas yang besar.
+- Menggunakan dua pekerja adalah kompromi yang baik antara efisiensi dan skalabilitas. Waktu rata-rata per permintaan adalah 12,5 ms, dan hanya ada 50 permintaan yang gagal. Konfigurasi ini akan dapat menangani peningkatan lalu lintas moderat.
+- Menggunakan tiga pekerja adalah konfigurasi yang paling dapat diskalakan. Waktu rata-rata per permintaan adalah 15,2 ms, dan ada 33 permintaan yang gagal. Konfigurasi ini akan dapat menangani peningkatan lalu lintas yang besar, tetapi juga yang paling tidak efisien.
+
+Berdasarkan kesimpulan tersebut, kita merekomendasikan penggunaan dua pekerja untuk sebagian besar lingkungan produksi. Konfigurasi ini memberikan keseimbangan yang baik antara efisiensi dan skalabilitas. Jika kita mengharapkan peningkatan lalu lintas yang besar, kita mungkin perlu mempertimbangkan untuk menggunakan tiga pekerja. Namun, ini akan mengurangi efisiensi.
+
+Penjelasan Lebih Detail
+
+- Efisiensi mengacu pada jumlah pekerjaan yang dapat diselesaikan oleh load balancer dalam satuan waktu tertentu. Dalam hal ini, efisiensi diukur dengan waktu rata-rata per permintaan.
+- Skalabilitas mengacu pada kemampuan load balancer untuk menangani peningkatan lalu lintas. Dalam hal ini, skalabilitas diukur dengan jumlah permintaan yang dapat diselesaikan load balancer sebelum terjadi kegagalan.
+
+Berdasarkan penjelasan di atas, konfigurasi dengan satu pekerja adalah yang paling efisien. Namun, konfigurasi ini tidak dapat menangani peningkatan lalu lintas yang besar. Konfigurasi dengan dua pekerja adalah kompromi yang baik antara efisiensi dan skalabilitas. Konfigurasi ini dapat menangani peningkatan lalu lintas moderat. Konfigurasi dengan tiga pekerja adalah yang paling dapat diskalakan, tetapi juga yang paling tidak efisien.
+
+## Set Authentication pada Nginx (10)
 
